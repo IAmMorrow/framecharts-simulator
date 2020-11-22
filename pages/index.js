@@ -20,6 +20,11 @@ const MarketButton = styled.div`
   cursor: pointer;
   border-radius: 4px;
   user-select: none;
+  text-align: center;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  
   
   &:hover {
     transform: scale(0.95);  
