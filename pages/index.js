@@ -91,7 +91,8 @@ const marketColors = {
     g: 186,
     b: 202,
     a: 1,
-  }
+  },
+  ATOM: Color.hex("#46509f"),
 };
 
 const White = {
@@ -127,7 +128,7 @@ const getInfos = candles => candles.reduce((acc, candle) => {
 const WIDTH = 84 * 2;
 const HEIGHT = 84 * 1;
 
-const quote = "USDT";
+const quote = "USD";
 
 export default function Home() {
   const matrixRef = useRef(null);
@@ -188,6 +189,9 @@ export default function Home() {
         </MarketButton>
         <MarketButton bg={marketColors["ETH"]} onClick={() => setBase("ETH")}>
           ETH/USD
+        </MarketButton>
+        <MarketButton bg={marketColors["ATOM"]} onClick={() => setBase("ATOM")}>
+          ATOM/USD
         </MarketButton>
       </Menu>
     </Page>
