@@ -1,0 +1,23 @@
+{
+  "name": "led-matrix-simu",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "axios": "^0.21.0",
+    "ccxt": "^1.38.10",
+    "led-matrix": "^1.0.1",
+    "matrix-display-store": "^1.0.0",
+    "next": "10.0.2",
+    "react": "17.0.1",
+    "react-dom": "17.0.1",
+    "styled-components": "^5.2.1"
+  },
+  "devDependencies": {
+    "babel-plugin-styled-components": "^1.12.0"
+  }
+}
