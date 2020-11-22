@@ -93,6 +93,12 @@ const marketColors = {
     a: 1,
   },
   ATOM: Color.hex("#46509f"),
+  SC: {
+    r: 92,
+    g: 200,
+    b: 163,
+    a: 1,
+  },
 };
 
 const White = {
@@ -192,6 +198,9 @@ export default function Home() {
         </MarketButton>
         <MarketButton bg={marketColors["ATOM"]} onClick={() => setBase("ATOM")}>
           ATOM/USD
+        </MarketButton>
+        <MarketButton bg={marketColors["SC"]} onClick={() => setBase("SC")}>
+          SC/USD
         </MarketButton>
       </Menu>
     </Page>
