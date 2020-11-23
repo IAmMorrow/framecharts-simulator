@@ -1,10 +1,10 @@
-import Head from 'next/head';
 import axios from "axios";
 
 import React, { useRef, useEffect, useState } from "react";
 import { createStore, TomThumb, Color, OrgDot } from 'matrix-display-store';
 import { LedMatrix } from "led-matrix"
 import styled from "styled-components";
+import Select from 'react-select'
 
 const Menu = styled.div`
   display: flex;
@@ -120,6 +120,14 @@ const Black = {
   a: 1,
 }
 
+const timeframes = [
+  { value: "1h", label: "1 hour" },
+  { value: "4h", label: "4 hours" },
+  { value: "1d", label: "1 day" },
+  { value: "1w", label: "1 week" },
+]
+
+
 const getInfos = candles => candles.reduce((acc, candle) => {
   const close = candle[4];
 
@@ -134,16 +142,14 @@ const getInfos = candles => candles.reduce((acc, candle) => {
   acc.last = candle[4];
 
   return acc;
-}, {})
+}, {});
 
 const WIDTH = 84 * 2;
 const HEIGHT = 84 * 1;
 
-const quote = "USD";
-
 export default function Home() {
   const matrixRef = useRef(null);
-  const [base, setBase] = useState("BTC");
+  const [market, setMarket] = useState({ base: "BTC", quote: "USD" })
   const [timeframe, setTimeframe] = useState("1d");
 
   const matrix = useRef(null);
@@ -163,7 +169,11 @@ export default function Home() {
   }, [])
 
   useEffect(() => {
-    axios.get(`/api/market/${base}/${quote}?timeframe=${timeframe}`).then(({ data }) => {
+    store.current.fillScreen(null);
+    matrix.current.setData(store.current.matrix);
+    matrix.current.render();
+
+    axios.get(`/api/market/${market.base}/${market.quote}?timeframe=${timeframe}`).then(({ data }) => {
       const candles = data.slice(-WIDTH);
       const { min, max, last } = getInfos(candles);
       store.current.fillScreen(null);
@@ -172,14 +182,14 @@ export default function Home() {
       candles.forEach((candle, index) => {
         const value = Math.round((HEIGHT - 1) - ((candle[4] - min) / (max - min) * (HEIGHT - 1)));
         if (before !== null) {
-          store.current.drawLine(index - 1, before, index, value, marketColors[base]);
+          store.current.drawLine(index - 1, before, index, value, marketColors[market.base]);
         }
         before = value;
       });
 
       store.current.fillRect(0, 0, 40, 15, Black);
       store.current.write(0, 7, `${last} $`, TomThumb, 1, White);
-      store.current.write(0, 0, `${base}/${quote}`, OrgDot, 1, marketColors[base]);
+      store.current.write(0, 0, `${market.base}/${market.quote}`, OrgDot, 1, marketColors[market.base]);
 
       matrix.current.setData(store.current.matrix);
       matrix.current.render();
@@ -187,7 +197,7 @@ export default function Home() {
 
     matrix.current.setData(store.current.matrix);
     matrix.current.render();
-  }, [base]);
+  }, [market, timeframe]);
 
   return (
     <Page>
@@ -195,16 +205,19 @@ export default function Home() {
         <Matrix ref={matrixRef} />
       </Frame>
       <Menu>
-        <MarketButton bg={marketColors["BTC"]} onClick={() => setBase("BTC")}>
+        <Select value={timeframes.find((tf) => tf.value === timeframe)} options={timeframes} onChange={({ value }) => {
+          setTimeframe(value);
+        }} />
+        <MarketButton bg={marketColors["BTC"]} onClick={() => setMarket({ base: "BTC", quote: "USD" })}>
           BTC/USD
         </MarketButton>
-        <MarketButton bg={marketColors["ETH"]} onClick={() => setBase("ETH")}>
+        <MarketButton bg={marketColors["ETH"]} onClick={() => setMarket({ base: "ETH", quote: "USD" })}>
           ETH/USD
         </MarketButton>
-        <MarketButton bg={marketColors["ATOM"]} onClick={() => setBase("ATOM")}>
+        <MarketButton bg={marketColors["ATOM"]} onClick={() => setMarket({ base: "ATOM", quote: "USD" })}>
           ATOM/USD
         </MarketButton>
-        <MarketButton bg={marketColors["SC"]} onClick={() => setBase("SC")}>
+        <MarketButton bg={marketColors["SC"]} onClick={() => setMarket({ base: "SC", quote: "USD" })}>
           SC/USD
         </MarketButton>
       </Menu>
