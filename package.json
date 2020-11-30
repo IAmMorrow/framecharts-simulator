@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@xstate/react": "^1.0.3",
     "axios": "^0.21.0",
     "ccxt": "^1.38.10",
     "led-matrix": "^1.0.1",
@@ -16,7 +17,8 @@
     "react": "17.0.1",
     "react-dom": "17.0.1",
     "react-select": "^3.1.1",
-    "styled-components": "^5.2.1"
+    "styled-components": "^5.2.1",
+    "xstate": "^4.14.0"
   },
   "devDependencies": {
     "babel-plugin-styled-components": "^1.12.0"

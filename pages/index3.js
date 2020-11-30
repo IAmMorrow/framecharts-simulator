@@ -7,7 +7,6 @@ import { Color, createStore, OrgDot, TomThumb } from 'matrix-display-store'
 import { LedMatrix } from 'led-matrix'
 import styled from 'styled-components'
 import Select from 'react-select'
-import { mainMachine } from '../src/machines/main'
 
 const calcChartCoordinates = (screenHeight, screenWidth, ohlcv) => {
   const candles = ohlcv.slice(-screenWidth);
@@ -36,6 +35,58 @@ const calcChartCoordinates = (screenHeight, screenWidth, ohlcv) => {
     return acc;
   }, []);
 }
+
+const createStateMachine = (height, width) => createMachine({
+  id: "frameChart",
+  initial: "init",
+  context: {
+    base: "BTC",
+    quote: "USD",
+    timeframe: "1d",
+    ohlcv: null,
+  },
+  states: {
+    init: {
+      always: {
+        target: "loading",
+      },
+    },
+    loading: {
+      activities: ["loadingAnimation"],
+      invoke: {
+        src: "fetchMarketData",
+        onDone: {
+          target: "rendering",
+          actions: assign((context, event) => ({
+            ohlcv: event.data,
+            dataPoints: calcChartCoordinates(height, width, event.data),
+          })),
+        },
+      }
+    },
+    rendering: {
+      invoke: {
+        src: "renderChart",
+        onDone: {
+          target: "success",
+        },
+      },
+    },
+    success: {
+      activities: ["ticker"],
+      on: {
+        SET_CONFIG: {
+          target: "init",
+          actions: assign((context, event) => ({
+            base: event.base || context.base,
+            quote: event.quote || context.quote,
+            timeframe: event.timeframe || context.timeframe,
+          }))
+        }
+      }
+    }
+  }
+});
 
 const Menu = styled.div`
   display: flex;
@@ -191,17 +242,96 @@ export default function Home() {
   const matrix = useRef(null);
   const store = useRef(null);
 
-  const [state, sendEvent] = useMachine(mainMachine, {
-    actions: {
-      renderFrame: (context, event) => {
-        console.log("event ", event)
-        matrix.current.setData(event.store.matrix);
-        matrix.current.render();
-      }
+  const [state, sendEvent] = useMachine(createStateMachine(HEIGHT, WIDTH), {
+    activities: {
+      ticker: (context, event) => {
+        const {
+          base,
+          quote,
+        } = context;
+
+        const interval = setInterval(async () => {
+          const { data } = await axios.get(`/api/market/${base}/${quote}/ticker`);
+
+          console.log(data.last);
+        }, 5000);
+
+        return () => clearInterval(interval);
+      },
+      loadingAnimation: () => {
+        let frame = 0;
+        const interval = setInterval(() => {
+          store.current.fillScreen(null);
+          store.current.drawFastHLine(0, 0, frame, White);
+          matrix.current.setData(store.current.matrix);
+          matrix.current.render();
+          frame++;
+        }, 100);
+        return () => clearInterval(interval);
+      },
+    },
+    services: {
+      fetchMarketData: (context, event) => {
+        const {
+          base,
+          quote,
+          timeframe,
+        } = context;
+
+        return axios.get(`/api/market/${base}/${quote}/ohlcv?timeframe=${timeframe}`).then(({ data }) => data);
+      },
+      renderChart: (context, event) => new Promise(resolve => {
+        let frame = 0;
+        const {
+          base,
+          quote,
+          timeframe,
+          ohlcv,
+          dataPoints,
+        } = context;
+
+        console.log(dataPoints)
+
+        const candles = ohlcv.slice(-WIDTH);
+        const { last } = getInfos(candles);
+
+        const getMarketColor = (base, index, frame) => {
+          const marketColor = marketColors[base];
+
+          return {
+            r: marketColor.r,
+            g: marketColor.g,
+            b: marketColor.b,
+            a: frame / 10,
+          }
+        }
+
+        const interval = setInterval(() => {
+          store.current.fillScreen(null);
+
+          dataPoints.forEach((coord, index) => {
+            store.current.drawLine(coord[0].x, coord[0].y, coord[1].x, coord[1].y, getMarketColor(base, index, frame));
+          });
+
+          store.current.fillRect(0, 0, 40, 15, Black);
+          store.current.write(0, 7, `${last} $`, TomThumb, 1, White);
+          store.current.write(0, 0, `${base}/${quote}`, OrgDot, 1, marketColors[base]);
+
+          matrix.current.setData(store.current.matrix);
+          matrix.current.render();
+          frame += 2;
+
+          if (frame >= 20) {
+            clearInterval(interval);
+            resolve();
+          }
+        }, 10);
+      })
     }
   });
 
   useEffect(() => {
+    store.current = createStore(WIDTH, HEIGHT);
     matrix.current = new LedMatrix(matrixRef.current, {
       x: WIDTH,
       y: HEIGHT,
